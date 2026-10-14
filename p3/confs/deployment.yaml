@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: wil-playground
-          image: wil42/playground:v2   # ← THIS LINE is what you change for the demo
+          image: wil42/playground:v1   # ← THIS LINE is what you change for the demo
                                         # v1 → v2 triggers Argo CD to redeploy
           ports:
             - containerPort: 8888      # the app listens on 8888
