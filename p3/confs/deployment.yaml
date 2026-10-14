@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: wil-playground
-  namespace: dev # must match the namespace Argo CD deploys into
+  namespace: dev               # must match the namespace Argo CD deploys into
 spec:
   replicas: 1
   selector:
@@ -16,11 +16,10 @@ spec:
     spec:
       containers:
         - name: wil-playground
-          image:
-            wil42/playground:v1 # ← THIS LINE is what you change for the demo
-                                # v1 → v2 triggers Argo CD to redeploy
+          image: wil42/playground:v1   # ← THIS LINE is what you change for the demo
+                                        # v1 → v2 triggers Argo CD to redeploy
           ports:
-            - containerPort: 8888 # the app listens on 8888
+            - containerPort: 8888      # the app listens on 8888
 
 ---
 # ── SERVICE ──────────────────────────────────────────────────────────────────
@@ -30,14 +29,13 @@ metadata:
   name: wil-playground-svc
   namespace: dev
 spec:
-  type:
-    NodePort            # NodePort exposes the service on the K3d node
-                        # ClusterIP would only be reachable inside cluster
-                        # NodePort makes it reachable from your VM
+  type: NodePort                 # NodePort exposes the service on the K3d node
+                                 # ClusterIP would only be reachable inside cluster
+                                 # NodePort makes it reachable from your VM
   selector:
     app: wil-playground
   ports:
-    - port: 8888        # port inside the cluster
-      targetPort: 8888  # port on the pod
-      nodePort: 30000   # fixed port on the K3d node (30000-32767 range)
-                        # we'll map this to host port 8888 via K3d
+    - port: 8888                 # port inside the cluster
+      targetPort: 8888           # port on the pod
+      nodePort: 30000            # fixed port on the K3d node (30000-32767 range)
+                                 # we'll map this to host port 8888 via K3d
