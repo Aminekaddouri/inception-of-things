@@ -78,13 +78,15 @@ k3d cluster create iot \
     --port "8888:30000@loadbalancer" \
     --wait
 
-echo "=== [Step 4] K3d cluster created ==="
 
 # K3d automatically updates ~/.kube/config to point kubectl at this cluster
 # But since we're running as root, we need to make sure vagrant user can use it too
 mkdir -p /home/vagrant/.kube
 cp /root/.kube/config /home/vagrant/.kube/config
 chown vagrant:vagrant /home/vagrant/.kube/config
+
+echo "=== [Step 4] K3d cluster created ==="
+
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # STEP 5 — Create namespaces
@@ -109,15 +111,15 @@ echo "=== [Step 5] Namespaces created ==="
 # - argocd-redis (caching)
 
 kubectl apply -n argocd \
-    -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+    -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml \
+    || true
 
 echo "=== [Step 6] Argo CD manifests applied, waiting for it to be ready ==="
 
 # Wait for the main Argo CD server deployment to be fully ready
 # This can take 2-3 minutes as it pulls images
 kubectl wait --for=condition=available deployment/argocd-server \
-    -n argocd \
-    --timeout=300s
+    -n argocd --timeout=300s
 
 echo "=== [Step 6] Argo CD is ready ==="
 
@@ -156,19 +158,28 @@ EOF
 echo "=== [Step 7] Argo CD Application created ==="
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# STEP 8 — Wait for the app to be deployed
+# STEP 8 — Wait for app to deploy in dev namespace
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# Argo CD needs a moment to clone the repo and apply the manifests.
+# We wait until the Deployment exists before running kubectl wait on it.
 
-echo "=== [Step 8] Waiting for app to deploy in dev namespace ==="
+echo "=== [Step 9] Waiting for app to deploy ==="
 
+# Wait for Argo CD to create the deployment (it may take up to 30s to sync)
+until kubectl get deployment wil-playground -n dev &>/dev/null; do
+    echo "  waiting for Argo CD to sync..."
+    sleep 5
+done
+
+# Now wait for it to be ready
 kubectl wait --for=condition=available deployment/wil-playground \
-    -n dev \
-    --timeout=120s
+    -n dev --timeout=120s
 
-echo "=== [Step 8] App is running! ==="
+echo "=== [Step 8] App is running ==="
+
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# STEP 9 — Print useful info
+# STEP 9 — Print summary
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 echo ""
@@ -176,19 +187,22 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo " Installation complete!"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo " App URL:     curl http://localhost:8888/"
-echo ""
-echo " Argo CD UI:  kubectl port-forward svc/argocd-server -n argocd 8080:443"
-echo "              then open https://localhost:8080"
-echo ""
-echo " Argo CD password:"
-kubectl -n argocd get secret argocd-initial-admin-secret \
-    -o jsonpath="{.data.password}" | base64 -d
-echo ""
-echo ""
 echo " Namespaces:"
-kubectl get ns
+kubectl get namespaces
+echo ""
+echo " Argo CD pods:"
+kubectl get pods -n argocd
 echo ""
 echo " App pod:"
 kubectl get pods -n dev
+echo ""
+echo " App response:"
+curl -s http://localhost:8888/
+echo ""
+echo ""
+echo " Argo CD UI:  kubectl port-forward svc/argocd-server -n argocd 8080:443"
+echo "              then open https://localhost:8080 (user: admin)"
+echo " Argo CD password:"
+kubectl -n argocd get secret argocd-initial-admin-secret \
+    -o jsonpath="{.data.password}" | base64 -d
 echo ""
