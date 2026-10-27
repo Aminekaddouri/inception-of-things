@@ -110,21 +110,29 @@ echo "=== [Step 5] Namespaces created ==="
 # - argocd-dex-server (authentication)
 # - argocd-redis (caching)
 
+# The official manifest has one CRD (applicationsets) that exceeds the
+# annotation size limit. We use || true so the script doesn't exit on
+# that single error — everything else applies successfully.
+
 kubectl apply -n argocd \
     -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml \
     || true
 
-echo "=== [Step 6] Argo CD manifests applied, waiting for it to be ready ==="
+echo "=== [Step 6] Argo CD manifests applied ==="
 
-# Wait for the main Argo CD server deployment to be fully ready
-# This can take 2-3 minutes as it pulls images
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# STEP 7 — Wait for Argo CD to be ready
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# argocd-server is the last component to become ready — when it's up,
+# the whole Argo CD stack is functional.
+
 kubectl wait --for=condition=available deployment/argocd-server \
     -n argocd --timeout=300s
 
-echo "=== [Step 6] Argo CD is ready ==="
+echo "=== [Step 7] Argo CD is ready ==="
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# STEP 7 — Create the Argo CD Application
+# STEP 8 — Create the Argo CD Application
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # This tells Argo CD WHAT to watch and WHERE to deploy it.
 # We apply it as a Kubernetes manifest (Argo CD adds its own CRDs to K8s).
@@ -155,10 +163,10 @@ spec:
       - CreateNamespace=true   # create dev namespace if it doesn't exist
 EOF
 
-echo "=== [Step 7] Argo CD Application created ==="
+echo "=== [Step 8] Argo CD Application created ==="
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# STEP 8 — Wait for app to deploy in dev namespace
+# STEP 9 — Wait for app to deploy in dev namespace
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # Argo CD needs a moment to clone the repo and apply the manifests.
 # We wait until the Deployment exists before running kubectl wait on it.
@@ -175,7 +183,7 @@ done
 kubectl wait --for=condition=available deployment/wil-playground \
     -n dev --timeout=120s
 
-echo "=== [Step 8] App is running ==="
+echo "=== [Step 9] App is running ==="
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

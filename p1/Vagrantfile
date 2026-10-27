@@ -1,0 +1,53 @@
+# "2" is the Vagrant configuration version. Always use "2".
+Vagrant.configure("2") do |config|
+
+  # ── Global settings (apply to all VMs) ───────────────────────────────────
+
+  # debian/bookworm64 = Debian 12 (latest stable), 64-bit
+  # This is the OS image Vagrant downloads from vagrantup.com
+  config.vm.box = "debian/bookworm64"
+
+  # Vagrant checks for box updates on every `vagrant up` — disable to save time
+  config.vm.box_check_update = false
+
+  # ── Machine 1: Server (akaddourS) ────────────────────────────────────────
+  config.vm.define "akaddourS" do |server|
+
+    # Hostname set inside the VM (what you see in the shell prompt)
+    server.vm.hostname = "akaddourS"
+
+    # Private network with fixed IP — this is the interface eth1 in the VM
+    # Both VMs are on the same 192.168.56.x network so they can reach each other
+    server.vm.network "private_network", ip: "192.168.56.110"
+
+    # VirtualBox-specific settings
+    server.vm.provider "virtualbox" do |vb|
+      vb.name   = "akaddourS"   # name shown in VirtualBox GUI
+      vb.memory = 1024           # 1GB RAM (subject says 512 min, 1024 recommended)
+      vb.cpus   = 1              # 1 CPU core
+    end
+
+    # Run the server provisioning script when the VM first boots
+    # path: is relative to the Vagrantfile location
+    server.vm.provision "shell", path: "scripts/server.sh"
+  end
+
+  # ── Machine 2: Worker (akaddourSW) ───────────────────────────────────────
+  config.vm.define "akaddourSW" do |worker|
+
+    worker.vm.hostname = "akaddourSW"
+    worker.vm.network "private_network", ip: "192.168.56.111"
+
+    worker.vm.provider "virtualbox" do |vb|
+      vb.name   = "akaddourSW"
+      vb.memory = 1024
+      vb.cpus   = 1
+    end
+
+    # Vagrant provisions machines in the order they're defined.
+    # akaddourS is defined first, so it finishes BEFORE this script runs.
+    # That means /vagrant/node-token will already exist when worker.sh reads it.
+    worker.vm.provision "shell", path: "scripts/worker.sh"
+  end
+
+end

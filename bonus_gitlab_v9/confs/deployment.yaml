@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wil-playground
+  namespace: dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wil-playground
+  template:
+    metadata:
+      labels:
+        app: wil-playground
+    spec:
+      containers:
+      - name: wil-playground
+        image: wil42/playground:v1
+        ports:
+        - containerPort: 8888
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wil-playground-svc
+  namespace: dev
+spec:
+  selector:
+    app: wil-playground
+  type: NodePort          # was ClusterIP — must be NodePort for K3d port mapping
+  ports:
+  - port: 8888
+    targetPort: 8888
+    nodePort: 30888       # matches --port "8888:30888@loadbalancer" in k3d create

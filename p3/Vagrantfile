@@ -6,7 +6,7 @@ Vagrant.configure("2") do |config|
     server.vm.hostname = "akaddourS"
 
     server.vm.provider "virtualbox" do |vb|
-      vb.name   = "akaddourS-p3"
+      vb.name   = "akaddourS"
       vb.memory = 4096        # Argo CD is heavy — needs 4GB
       vb.cpus   = 2
     end

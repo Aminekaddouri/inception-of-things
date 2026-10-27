@@ -1,0 +1,57 @@
+# ── DEPLOYMENT ──────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-one # name of this Deployment object
+  namespace: default # which namespace it lives in
+  labels:
+    app: app-one # label on the Deployment itself
+spec:
+  replicas: 1 # app1 needs exactly 1 Pod
+
+  selector:
+    matchLabels:
+      app:
+        app-one # this Deployment owns Pods with this label
+                # MUST match template.metadata.labels below
+
+  template: # blueprint for every Pod this Deployment creates
+    metadata:
+      labels:
+        app:
+          app-one # every Pod gets this label
+                  # Service uses this to find the Pods
+    spec:
+      containers:
+        - name: app-one # name of the container inside the Pod
+          image: paulbouwer/hello-kubernetes:1.10
+          # hello-kubernetes is perfect for this project:
+          # it shows which Pod and Node is serving, so you can
+          # see the 3 replicas of app2 in action during evaluation
+          ports:
+            - containerPort: 8080 # this image listens on 8080, not 80
+          env:
+            - name: MESSAGE
+              value: "Hello from App 1" # shown on the webpage
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+
+---
+# ── SERVICE ─────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-one-svc # name used in the Ingress rules
+  namespace: default
+spec:
+  selector:
+    app:
+      app-one # finds Pods with label app=app-one
+              # same label the Deployment puts on its Pods
+  ports:
+    - port: 80 # port the Service exposes inside the cluster
+      targetPort:
+        8080  # port on the Pod to forward to
+              # must match containerPort above
