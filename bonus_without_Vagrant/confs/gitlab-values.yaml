@@ -1,0 +1,96 @@
+# ── GLOBAL SETTINGS ──────────────────────────────────────────────────────────
+global:
+
+  # Edition: Community Edition (free, open source)
+  # Enterprise Edition has paid features we don't need
+  edition: ce
+
+  hosts:
+    # The domain GitLab will use internally
+    # We use a fake local domain — no real DNS needed
+    domain: gitlab.local
+
+    # No HTTPS — SSL certificates are complex to set up locally
+    # and not required for this project
+    https: false
+
+    gitlab:
+      name: gitlab.local
+      https: false
+
+  # Ingress settings — we disable GitLab's own ingress
+  # K3d already has Traefik as ingress controller
+  # We'll access GitLab via port-forward instead
+  ingress:
+    enabled: false
+    configureCertmanager: false
+
+  appConfig:
+    object_store:
+      enabled: false
+
+  # Service type for GitLab's webservice
+  # ClusterIP = only accessible inside the cluster
+  # We'll use port-forward to access from outside
+  service:
+    type: ClusterIP
+
+# ── CERT MANAGER ─────────────────────────────────────────────────────────────
+installCertmanager: false
+
+# cert-manager: manages SSL certificates
+# We don't need SSL for local development
+# certmanager:
+#   installCRDs: false
+
+# ── GITLAB COMPONENTS ────────────────────────────────────────────────────────
+gitlab:
+
+  # Webservice: the main GitLab web UI and API
+  # This is what you see when you open GitLab in a browser
+  webservice:
+    minReplicas: 1
+    maxReplicas: 1       # only 1 instance — saves RAM
+    resources:
+      requests:
+        cpu: "100m"      # 0.1 CPU core minimum
+        memory: "1G"     # 1GB minimum for Rails app
+
+  # Sidekiq: background job processor
+  # Handles emails, notifications, repository imports, etc.
+  sidekiq:
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "625M"
+
+  # Gitaly: manages git repository storage
+  # Every git push/pull goes through Gitaly
+  gitaly:
+    persistence:
+      enabled: true
+      size: 5Gi                 # 5GB for git repos — enough for our project
+      storageClass: local-path  # K3d's built-in storage class
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "200M"
+
+  # GitLab Shell: handles SSH git operations
+  # We'll use HTTP not SSH, but it's required by the chart
+  gitlab-shell:
+    resources:
+      requests:
+        cpu: "10m"
+        memory: "20M"
+
+  # Toolbox: backup/restore and administrative tasks
+  toolbox:
+    enabled: false
+
+  # Migrations: runs database migrations on startup
+  migrations:
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "200M"

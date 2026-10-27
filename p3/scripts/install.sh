@@ -9,8 +9,8 @@ echo "=== [Part 3] Starting installation ==="
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export DEBIAN_FRONTEND=noninteractive
-apt-get update -qq
-apt-get install -y -qq \
+apt-get update
+apt-get install -y \
     curl \
     wget \
     apt-transport-https \
@@ -208,7 +208,7 @@ echo " App response:"
 curl -s http://localhost:8888/
 echo ""
 echo ""
-echo " Argo CD UI:  kubectl port-forward svc/argocd-server -n argocd 8080:443"
+echo " Argo CD UI:  kubectl port-forward --address 0.0.0.0 svc/argocd-server -n argocd 8080:443"
 echo "              then open https://localhost:8080 (user: admin)"
 echo " Argo CD password:"
 kubectl -n argocd get secret argocd-initial-admin-secret \
